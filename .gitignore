@@ -1,0 +1,11 @@
+[plain] view plaincopy
+#过滤数据库文件、sln解决方案文件、配置文件  
+*.bak 
+*.htm  
+*.ioc 
+*.config  
+
+#过滤文件夹Debug,Release,obj  
+MDA-ARM/  
+Release/  
+
