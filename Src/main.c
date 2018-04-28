@@ -63,7 +63,7 @@ void SystemClock_Config(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-
+uint16_t i=0;
 /* USER CODE END 0 */
 
 /**
@@ -99,14 +99,18 @@ int main(void)
   MX_TIM3_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-
+	uint32_t count;
+	HAL_TIM_Base_Start_IT(&htim3);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-
+		count=10000000;
+		while(count--);
+		Led1_Toggle();
+		;
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
@@ -167,7 +171,17 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
+	if(htim->Instance==htim3.Instance){
+		//tim3¶¨Ê±Æ÷Òç³ö
+		i++;
+		i=i%11;
+		if(i>9){
+			Led0_Toggle();
+		}
+	}
+}
+		
 /* USER CODE END 4 */
 
 /**
