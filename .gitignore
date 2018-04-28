@@ -6,7 +6,7 @@
 *.config  
 
 #过滤文件夹Debug,Release,obj  
-MDA-ARM/  
+MDk-ARM/  
 Release/
 Drivers/  
 
