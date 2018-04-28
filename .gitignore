@@ -7,5 +7,6 @@
 
 #过滤文件夹Debug,Release,obj  
 MDA-ARM/  
-Release/  
+Release/
+Drivers/  
 
