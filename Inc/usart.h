@@ -54,7 +54,16 @@
 extern UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN Private defines */
-
+#define RX_LEN 1024  
+	 
+typedef struct  
+{  
+uint8_t  RX_flag:1;        //IDLE receive flag
+uint16_t RX_Size;          //receive length
+uint8_t  RX_pData[RX_LEN]; //DMA receive buffer
+}USART_RECEIVETYPE;  
+   
+extern USART_RECEIVETYPE UsartType; 
 /* USER CODE END Private defines */
 
 extern void _Error_Handler(char *, int);

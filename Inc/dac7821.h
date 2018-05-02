@@ -11,5 +11,7 @@
 void DAC7821_init(void);
 void DAC7821_vol(float vol);
 void data_send_DAC7821(uint16_t data);
-
+void sanjiaobo(float fre,float amp1,float amp2);
+void juchibo(float fre,float amp1,float amp2);
+void DAC7821_ShutDown();
 #endif
