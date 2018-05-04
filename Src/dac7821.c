@@ -1,14 +1,16 @@
 #include "stm32f1xx_hal.h"
 #include "DAC7821.h"
 #include "time.h"
+#include "gpio.h"
+#include "tim.h"
 
 uint16_t wave_cnt=0;
-float amp_bottom=0;
-float sanjiaobo_amp_step=0;
+uint16_t amp_bottom=0;
+uint16_t sanjiaobo_amp_step=0;
 
 int wave_flag=1;
-float juchibo_amp_step_1=0;
-float juchibo_amp_step_2=0;
+uint16_t juchibo_amp_step_1=0;
+uint16_t juchibo_amp_step_2=0;
 
 uint8_t wave_choose=0;
 
@@ -20,7 +22,7 @@ void DAC7821_init(void){
 
 void DAC7821_vol(float vol){//直流电压
 	uint16_t vol_data=0;
-	vol_data = (uint16_t) vol * 4095/10;
+	vol_data = (uint16_t) (vol * 4095/150);
 	DATAOUT_DAC7821(vol_data);
 	DAC7821_RW_ON;
 	DAC7821_CS_ON;
@@ -38,8 +40,8 @@ void data_send_DAC7821(uint16_t data){
 }
 
 
-void sanjiaobo(float fre,float amp1,float amp2){
-	float amp=amp2-amp1;
+void sanjiaobo(uint16_t fre,uint8_t amp1,uint8_t amp2){
+	uint16_t amp=amp2-amp1;
 	amp_bottom=4095/150*amp1;
 	wave_choose=0;
 	wave_cnt=0;
@@ -60,10 +62,12 @@ void sanjiaobo(float fre,float amp1,float amp2){
 	}
 	TIM1->DIER=1<<0;//允许更新中断
 	TIM3->CR1|=0x01;//使能定时器3
+	HAL_TIM_Base_Start_IT(&htim3);//开启定时器3
+
 }
 
-void juchibo(float fre,float amp1,float amp2){
-	float amp=amp1-amp2;
+void juchibo(uint16_t fre,uint8_t amp1,uint8_t amp2){
+	uint16_t amp=amp2-amp1;
 	amp_bottom=4095/150*amp1;
 	wave_choose=1;//选择锯齿波
 	wave_cnt=0;
@@ -86,6 +90,7 @@ void juchibo(float fre,float amp1,float amp2){
 	}
 	TIM3->DIER|=1<<0;//允许更新中断
 	TIM3->CR1|=0X01;//使能定时器3
+	HAL_TIM_Base_Start_IT(&htim3);//开启定时器3
 }
 
 void DAC7821_ShutDown(){

@@ -48,19 +48,21 @@
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
-uint8_t OldDyOneSet;			//上一次三角波电压
-uint8_t NewDyOneSet;			//新的三角波电压
-uint8_t OldDyTwoSet;			//上一次锯齿波电压
-uint8_t NewDyTwoSet;			//新的锯齿波电压
-uint8_t OldDyZeroSet;			//上一次直流电压电压
-uint8_t NewDyZeroSet;			//新的直流电压
-uint8_t NewVoltSet;
+uint16_t OldDyOneSet;			//上一次三角波电压
+uint16_t NewDyOneSet;			//新的三角波电压
+uint16_t OldDyTwoSet;			//上一次锯齿波电压
+uint16_t NewDyTwoSet;			//新的锯齿波电压
+uint16_t OldDyZeroSet;			//上一次直流电压电压
+uint16_t NewDyZeroSet;			//新的直流电压
+uint16_t NewVoltSet;
 
 uint16_t OldFreOneSet;
 uint16_t NewFreOneSet;
 uint16_t OldFreTwoSet;
 uint16_t NewFreTwoSet;
 uint16_t NewFreSet;
+
+
 
 int volt_Flag=0;					//电压模式标志
 int volt_Change=0;				//电压改变标志
@@ -78,12 +80,22 @@ uint8_t aDfOneMessage[]="the df1 ok\r\n";
 uint8_t aDfTwoMessage[]="the df2 ok\r\n";
 uint8_t aDyBuffer[20];		//电压接收buffer
 char Message[]="";
+int out_flag=1;
+
+extern uint8_t wave_choose;
+extern uint16_t wave_cnt;
+extern int wave_flag;
+extern uint16_t amp_bottom;
+extern uint16_t sanjiaobo_amp_step;
+extern uint16_t juchibo_amp_step_1;
+extern uint16_t juchibo_amp_step_2;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-char *myitoa(uint8_t value, char *string, int radix);  
-void voltSet(int flag,uint8_t voltSet,uint16_t freSet);
+char *myitoa(uint16_t value, char *string, int radix);  
+void voltSet(int flag,uint16_t voltSet,uint16_t freSet);
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
 
@@ -129,7 +141,8 @@ int main(void)
 	/* 外设初始化 */
 	DAC7821_init();
 	/*全局设置(TIM,UART)*/
-	HAL_TIM_Base_Start_IT(&htim3);
+	//HAL_TIM_Base_Start_IT(&htim3);//开启定时器3
+	//HAL_TIM_Base_Stop_IT(&htim3);//关闭定时器3
 	HAL_UART_Transmit_IT(&huart1,(uint8_t *)aTxStartMessage,sizeof(aTxStartMessage));
 	HAL_UART_Receive_IT(&huart1,(uint8_t *)aDyBuffer,6);
   /* USER CODE END 2 */
@@ -138,13 +151,13 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	uint32_t i=1000000;
-		while(i--);
-		Led1_Toggle();
+//	uint32_t i=1000000;
+//		while(i--);
+//		Led1_Toggle();
 	if(volt_Change){
 		voltSet(volt_Flag,NewVoltSet,NewFreSet);
 		volt_Change=0;
-		Led0_Toggle();
+		//Led0_Toggle();
 	}
 		
 		
@@ -212,9 +225,9 @@ void SystemClock_Config(void)
 	* @brief int转String
   * @param value string radix
   * @retval String
-	* @effect 
+	* @effect 将Int变量转换为String 
 	*/
-char *myitoa(uint8_t value, char *string, int radix)  
+char *myitoa(uint16_t value, char *string, int radix)  
 {  
     int i, d;  
     int flag = 0;  
@@ -229,7 +242,7 @@ char *myitoa(uint8_t value, char *string, int radix)
 			*ptr=0;
 			return string;
 		}
-		for(i=1000;i>0;i /=10){
+		for(i=10000;i>0;i /=10){
 			d=value/i;
 			if(d||flag){
 				*ptr++=(char)(d+0x30);
@@ -247,12 +260,55 @@ char *myitoa(uint8_t value, char *string, int radix)
 	* @brief 定时器回调函数
   * @param huart: htim handle
   * @retval None
-	* @effect 处理定时器溢出函数
+	* @effect 处理定时器3溢出函数 波形产生
 	*/
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	if(htim->Instance==htim3.Instance){
 		//tim3定时器溢出
 		
+			if(wave_choose==0){
+				data_send_DAC7821(amp_bottom+sanjiaobo_amp_step*wave_cnt);
+				wave_cnt=wave_cnt+wave_flag;
+				myitoa(sanjiaobo_amp_step*wave_cnt,Message,10);
+				if( wave_cnt%10 ==9){
+				printf("三角波的步径值：");
+				printf(Message);
+				printf("\r\n");
+				}
+				
+				if(wave_cnt>=200)
+					wave_flag =-1;
+				if(wave_cnt==0)
+					wave_flag=1;
+				Led1_Toggle();
+			}
+			if(wave_choose==1){
+				if(wave_flag==1){
+					data_send_DAC7821(amp_bottom+juchibo_amp_step_1*wave_cnt);
+					myitoa(juchibo_amp_step_1*wave_cnt,Message,10);
+					if( wave_cnt%20 ==19){
+					printf("锯齿波1的步径值：");
+					printf(Message);		
+					printf("\r\n");
+					}
+				}
+				else {
+					data_send_DAC7821(amp_bottom+juchibo_amp_step_2*wave_cnt);
+				myitoa(juchibo_amp_step_2*wave_cnt,Message,10);
+					if( wave_cnt%20 ==19){
+					printf("锯齿波2的步径值：");
+					printf(Message);	
+					printf("\r\n");
+					}
+				}
+					wave_cnt=wave_cnt+wave_flag;
+				if(wave_cnt==359){
+					wave_flag=-1;
+					wave_cnt=39;
+				}
+				if(wave_cnt==0)
+					wave_flag=1;
+			}
 		}
 }
 
@@ -260,16 +316,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 	* @brief Rx Transfer completed callbacks  中断回调函数
   * @param huart: uart handle
   * @retval None
-	* @effect 将接收到的数据又通过串口发送回去
+	* @effect 接收上位机传送给MCU的电压设置参数
 	*/
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	UNUSED(huart);
+	out_flag=1;
+	HAL_TIM_Base_Stop_IT(&htim3);//关闭定时器3
 	volt_Change=1;
 	if((aDyBuffer[0] == 'd')&&(aDyBuffer[1] =='y')&&(aDyBuffer[2] == '0')){
 	//HAL_UART_Transmit_IT(&huart1,(uint8_t *)aDyZeroMessage,sizeof(aDyZeroMessage));
 	printf(aDyZeroMessage);
 	//dy0接收成功 
 	NewDyZeroSet=(aDyBuffer[3]-48)*100 + (aDyBuffer[4]-48)*10 + (aDyBuffer[5]-48);
+	if(NewDyZeroSet>150) NewDyZeroSet=150;
 	myitoa(NewDyZeroSet,Message,10);
 	printf("new dy0=: \r\n");
 	printf(Message);
@@ -283,6 +342,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 		//dy1接收成功 
 	//字符换算成int
 	NewDyOneSet=(aDyBuffer[3]-48)*100 + (aDyBuffer[4]-48)*10 + (aDyBuffer[5]-48);
+	if(NewDyOneSet>150) NewDyOneSet=150;
 	myitoa(NewDyOneSet,Message,10);
 	printf("new dy1=: \r\n");
 	printf(Message);
@@ -294,6 +354,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	printf(aDfOneMessage);
 	//dy0接收成功 
 	NewFreOneSet=(aDyBuffer[3]-48)*100 + (aDyBuffer[4]-48)*10 + (aDyBuffer[5]-48);
+	if(NewFreOneSet>500) NewFreOneSet=500;
 	myitoa(NewFreOneSet,Message,10);
 	printf("new df1=: \r\n");
 	printf(Message);
@@ -307,6 +368,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	//dy2接收成功 
 	//字符换算成int
 	NewDyTwoSet=(aDyBuffer[3]-48)*100 + (aDyBuffer[4]-48)*10 + (aDyBuffer[5]-48);
+	if(NewDyTwoSet>150) NewDyTwoSet=150;
 	myitoa(NewDyTwoSet,Message,10);
 	printf("new dy2=: \r\n");
 	printf(Message);
@@ -319,13 +381,14 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	printf(aDfTwoMessage);
 	//dy0接收成功 
 	NewFreTwoSet=(aDyBuffer[3]-48)*100 + (aDyBuffer[4]-48)*10 + (aDyBuffer[5]-48);
+	if(NewFreTwoSet>500) NewFreTwoSet=500;
 	myitoa(NewFreTwoSet,Message,10);
 	printf("new df2=: \r\n");
 	printf(Message);
 	NewFreSet=NewFreTwoSet;
 	volt_Flag=3;
 	}
-	else if((aDyBuffer[0] == 'd')&&(aDyBuffer[1] =='y')&&(aDyBuffer[2] == 'd')&&(aDyBuffer[3] == 'n')){
+	else if((aDyBuffer[0] == 'd')&&(aDyBuffer[1] =='y')&&(aDyBuffer[2] == 'd')&&(aDyBuffer[3] == 'w')){
 	//HAL_UART_Transmit_IT(&huart1,(uint8_t *)aDyZeroMessage,sizeof(aDyZeroMessage));
 	volt_Flag=5;
 	}
@@ -339,22 +402,31 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 }
 
 /**
-*/
-void voltSet(int flag,uint8_t voltSet,uint16_t freSet){
+	* @brief 电压设置函数
+  * @param flag,voltset,freset
+  * @retval None
+	* @effect  电压设置函数 输出DAC的选择
+	*/
+void voltSet(int flag,uint16_t voltSet,uint16_t freSet){
 	if(volt_Flag==1){
 		if(OldDyZeroSet!=voltSet){
+			Led0_Toggle();
 			DAC7821_vol(voltSet);
 			OldDyZeroSet=voltSet;
 		}
-	}else if(volt_Flag==2){
-		if(OldDyOneSet!=voltSet||OldFreOneSet!=freSet){
+	}
+	else if(volt_Flag==2){
+		if((voltSet!=0)&&(freSet!=0)&&(OldDyOneSet!=voltSet||OldFreOneSet!=freSet)){
+			Led0_Toggle();
 			sanjiaobo(freSet,0,voltSet);
 			OldDyOneSet=voltSet;
 			OldFreOneSet=freSet;
 		}
-	}else if(volt_Flag==3){
-		if(OldDyTwoSet!=voltSet){
-			sanjiaobo(freSet,0,voltSet);
+	}
+	else if(volt_Flag==3){
+		if((voltSet!=0)&&(freSet!=0)&&(OldDyTwoSet!=voltSet||OldFreTwoSet!=freSet)){
+			Led0_Toggle();
+			juchibo(freSet,0,voltSet);
 			OldDyTwoSet=voltSet;
 			OldFreTwoSet=freSet;
 		}
