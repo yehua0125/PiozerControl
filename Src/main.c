@@ -269,12 +269,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 			if(wave_choose==0){
 				data_send_DAC7821(amp_bottom+sanjiaobo_amp_step*wave_cnt);
 				wave_cnt=wave_cnt+wave_flag;
-				myitoa(sanjiaobo_amp_step*wave_cnt,Message,10);
-				if( wave_cnt%10 ==9){
-				printf("三角波的步径值：");
-				printf(Message);
-				printf("\r\n");
-				}
 				
 				if(wave_cnt>=200)
 					wave_flag =-1;
@@ -285,21 +279,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 			if(wave_choose==1){
 				if(wave_flag==1){
 					data_send_DAC7821(amp_bottom+juchibo_amp_step_1*wave_cnt);
-					myitoa(juchibo_amp_step_1*wave_cnt,Message,10);
-					if( wave_cnt%20 ==19){
-					printf("锯齿波1的步径值：");
-					printf(Message);		
-					printf("\r\n");
-					}
 				}
 				else {
 					data_send_DAC7821(amp_bottom+juchibo_amp_step_2*wave_cnt);
-				myitoa(juchibo_amp_step_2*wave_cnt,Message,10);
-					if( wave_cnt%20 ==19){
-					printf("锯齿波2的步径值：");
-					printf(Message);	
-					printf("\r\n");
-					}
 				}
 					wave_cnt=wave_cnt+wave_flag;
 				if(wave_cnt==359){
